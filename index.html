@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Arc Testnet Smart Contract Deployer for Demrar JAMAIII</title>
+  <title>Deploy Smart Contract On Arc</title>
   <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🔷</text></svg>">
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link href="https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&family=Syne:wght@400;600;700;800&display=swap" rel="stylesheet" />
@@ -19,7 +19,7 @@
       --border-lit:#2a3050;
       --blue:      #0052ff;
       --blue-hi:   #3b73ff;
-      --blue-glow: rgba(0,82,255,.18);
+      --blue-glow: rgba(59,115,255,.22);
       --green:     #00d97e;
       --red:       #ff4a6b;
       --amber:     #ffad2b;
@@ -37,28 +37,44 @@
       color: var(--text);
       min-height: 100vh;
       overflow-x: hidden;
+      position: relative;
     }
 
-    /* ── NOISE OVERLAY ── */
+    /* ── ANIMATED DEV BACKGROUND (network graph) ── */
+    #dev-bg {
+      position: fixed;
+      top: 0; left: 0;
+      width: 100%; height: 100%;
+      z-index: -1;
+      opacity: 0.13;
+      pointer-events: none;
+    }
+
+    /* ── NOISE + GLOW (kept but toned down) ── */
     body::before {
       content: '';
       position: fixed; inset: 0;
-      background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)' opacity='0.03'/%3E%3C/svg%3E");
+      background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)' opacity='0.025'/%3E%3C/svg%3E");
       background-size: 200px;
       pointer-events: none;
-      z-index: 0;
-      opacity: .5;
+      z-index: -2;
+      opacity: .4;
     }
 
-    /* ── GLOW BG ── */
     .bg-glow {
       position: fixed;
-      top: -30vh; left: 50%;
+      top: -35vh; left: 50%;
       transform: translateX(-50%);
-      width: 900px; height: 600px;
-      background: radial-gradient(ellipse, rgba(0,82,255,.08) 0%, transparent 70%);
+      width: 1100px; height: 720px;
+      background: radial-gradient(ellipse, rgba(59,115,255,.12) 0%, transparent 68%);
+      animation: glowPulse 18s ease infinite;
       pointer-events: none;
-      z-index: 0;
+      z-index: -2;
+    }
+
+    @keyframes glowPulse {
+      0%, 100% { opacity: 0.6; transform: translateX(-50%) scale(1); }
+      50% { opacity: 1; transform: translateX(-50%) scale(1.08); }
     }
 
     /* ── HEADER ── */
@@ -66,133 +82,143 @@
       position: sticky; top: 0; z-index: 200;
       display: flex; align-items: center; justify-content: space-between;
       padding: 0 28px;
-      height: 62px;
-      background: rgba(8,9,12,.85);
-      backdrop-filter: blur(24px);
+      height: 66px;
+      background: rgba(8,9,12,.92);
+      backdrop-filter: blur(28px);
       border-bottom: 1px solid var(--border);
+      box-shadow: 0 4px 20px rgba(0,82,255,.08);
     }
 
     .logo {
       display: flex; align-items: center; gap: 10px;
-      font-size: 17px; font-weight: 800; letter-spacing: -.5px;
+      font-size: 18px; font-weight: 800; letter-spacing: -.6px;
     }
 
     .logo-mark {
-      width: 30px; height: 30px;
-      background: var(--blue);
-      border-radius: 8px;
+      width: 32px; height: 32px;
+      background: linear-gradient(135deg, var(--blue), #7ba8ff);
+      border-radius: 9px;
       display: grid; place-items: center;
-      font-size: 15px;
+      font-size: 17px;
+      box-shadow: 0 0 14px var(--blue-glow);
     }
 
-    .hdr-right { display: flex; align-items: center; gap: 10px; }
+    .hdr-right { display: flex; align-items: center; gap: 12px; }
 
     .net-pill {
       display: flex; align-items: center; gap: 7px;
-      padding: 5px 12px;
+      padding: 6px 14px;
       background: var(--surface);
-      border: 1px solid var(--border);
-      border-radius: 20px;
-      font-size: 12px; color: var(--dim);
+      border: 1px solid var(--border-lit);
+      border-radius: 9999px;
+      font-size: 12.5px; color: var(--dim);
       font-family: 'Space Mono', monospace;
+      box-shadow: inset 0 1px 0 rgba(255,255,255,.06);
     }
-    .net-dot { width: 6px; height: 6px; border-radius: 50%; background: var(--green); box-shadow: 0 0 6px var(--green); }
+    .net-dot { width: 7px; height: 7px; border-radius: 50%; background: var(--green); box-shadow: 0 0 8px var(--green); animation: netPulse 2s infinite; }
+
+    @keyframes netPulse { 50% { opacity: 0.4; } }
 
     #connectBtn {
-      padding: 7px 18px;
+      padding: 8px 20px;
       background: var(--blue);
       color: #fff;
-      border: none; border-radius: 9px;
+      border: none; border-radius: 10px;
       font-family: 'Syne', sans-serif;
-      font-size: 13px; font-weight: 700;
+      font-size: 13.5px; font-weight: 700;
       cursor: pointer;
-      transition: background .15s, transform .1s;
+      transition: all .2s cubic-bezier(0.4, 0, 0.2, 1);
+      box-shadow: 0 4px 14px var(--blue-glow);
     }
-    #connectBtn:hover { background: var(--blue-hi); }
-    #connectBtn:active { transform: scale(.97); }
+    #connectBtn:hover { background: var(--blue-hi); transform: translateY(-1px); }
+    #connectBtn:active { transform: scale(0.97); }
     #connectBtn.connected {
       background: var(--surface);
-      border: 1px solid var(--border);
+      border: 1px solid var(--border-lit);
       color: var(--dim);
       font-family: 'Space Mono', monospace;
-      font-size: 11px;
+      font-size: 11.5px;
       letter-spacing: 0;
+      box-shadow: none;
     }
 
     /* ── HERO ── */
     .hero {
       position: relative; z-index: 1;
       text-align: center;
-      padding: 70px 24px 44px;
+      padding: 82px 24px 52px;
     }
 
     .hero-eyebrow {
       display: inline-flex; align-items: center; gap: 8px;
-      padding: 5px 14px;
+      padding: 6px 16px;
       border: 1px solid var(--border-lit);
-      border-radius: 20px;
-      font-size: 12px; color: var(--dim);
+      border-radius: 9999px;
+      font-size: 12.5px; color: var(--dim);
       font-family: 'Space Mono', monospace;
-      margin-bottom: 22px;
+      margin-bottom: 24px;
       background: var(--surface);
+      box-shadow: 0 2px 8px rgba(0,82,255,.1);
     }
     .hero-eyebrow span { color: var(--blue-hi); }
 
     .hero h1 {
-      font-size: clamp(32px, 5vw, 56px);
+      font-size: clamp(34px, 5.5vw, 62px);
       font-weight: 800;
-      letter-spacing: -2px;
-      line-height: 1.1;
-      margin-bottom: 16px;
+      letter-spacing: -2.5px;
+      line-height: 1.05;
+      margin-bottom: 18px;
     }
     .hero h1 em {
       font-style: normal;
-      background: linear-gradient(130deg, var(--blue-hi) 0%, #a78bff 100%);
+      background: linear-gradient(130deg, #3b73ff 0%, #a78bff 100%);
       -webkit-background-clip: text;
       -webkit-text-fill-color: transparent;
     }
 
     .hero p {
-      font-size: 16px; font-weight: 400;
+      font-size: 16.5px; font-weight: 400;
       color: var(--dim);
-      max-width: 480px; margin: 0 auto 32px;
-      line-height: 1.65;
+      max-width: 520px; margin: 0 auto 36px;
+      line-height: 1.7;
     }
 
     .hero-stats {
       display: inline-flex; gap: 0;
       border: 1px solid var(--border);
-      border-radius: 14px;
+      border-radius: 16px;
       overflow: hidden;
       background: var(--surface);
+      box-shadow: 0 8px 24px rgba(0,0,0,.2);
     }
     .stat {
-      padding: 12px 28px;
+      padding: 14px 32px;
       border-right: 1px solid var(--border);
     }
     .stat:last-child { border-right: none; }
-    .stat-val { font-size: 22px; font-weight: 800; color: var(--blue-hi); }
-    .stat-lbl { font-size: 11px; color: var(--muted); margin-top: 1px; font-family: 'Space Mono', monospace; }
+    .stat-val { font-size: 24px; font-weight: 800; color: var(--blue-hi); }
+    .stat-lbl { font-size: 11.5px; color: var(--muted); margin-top: 2px; font-family: 'Space Mono', monospace; }
 
     /* ── COMPILER STATUS ── */
     .compiler-wrap {
       position: relative; z-index: 1;
-      max-width: 1200px; margin: 0 auto 28px;
+      max-width: 1200px; margin: 0 auto 32px;
       padding: 0 24px;
     }
 
     #compilerStatus {
-      display: flex; align-items: center; gap: 10px;
-      padding: 11px 16px;
-      border-radius: 10px;
-      font-size: 13px;
+      display: flex; align-items: center; gap: 12px;
+      padding: 14px 20px;
+      border-radius: 12px;
+      font-size: 13.5px;
       border: 1px solid;
       font-family: 'Space Mono', monospace;
-      transition: all .3s;
+      transition: all .3s cubic-bezier(0.4, 0, 0.2, 1);
+      box-shadow: 0 4px 16px rgba(0,0,0,.15);
     }
-    #compilerStatus.loading { background: rgba(255,173,43,.07); border-color: rgba(255,173,43,.22); color: var(--amber); }
-    #compilerStatus.ready   { background: rgba(0,217,126,.07); border-color: rgba(0,217,126,.22); color: var(--green); }
-    #compilerStatus.err     { background: rgba(255,74,107,.07); border-color: rgba(255,74,107,.22); color: var(--red); }
+    #compilerStatus.loading { background: rgba(255,173,43,.08); border-color: rgba(255,173,43,.3); color: var(--amber); }
+    #compilerStatus.ready   { background: rgba(0,217,126,.08); border-color: rgba(0,217,126,.3); color: var(--green); }
+    #compilerStatus.err     { background: rgba(255,74,107,.08); border-color: rgba(255,74,107,.3); color: var(--red); }
 
     @keyframes spin { to { transform: rotate(360deg); } }
     .spin { display: inline-block; animation: spin 1s linear infinite; }
@@ -206,75 +232,88 @@
 
     .section-hdr {
       display: flex; align-items: center; justify-content: space-between;
-      margin-bottom: 18px;
+      margin-bottom: 20px;
     }
     .section-label {
-      font-size: 11px; font-weight: 700; letter-spacing: 2px;
+      font-size: 11.5px; font-weight: 700; letter-spacing: 2.5px;
       text-transform: uppercase; color: var(--muted);
       font-family: 'Space Mono', monospace;
     }
     #deployedCount {
-      font-size: 12px;
+      font-size: 13px;
       color: var(--dim);
       font-family: 'Space Mono', monospace;
+      background: var(--surface);
+      padding: 4px 14px;
+      border-radius: 9999px;
+      border: 1px solid var(--border);
     }
 
     .grid {
       display: grid;
-      grid-template-columns: repeat(auto-fill, minmax(345px, 1fr));
-      gap: 14px;
+      grid-template-columns: repeat(auto-fill, minmax(360px, 1fr));
+      gap: 18px;
     }
 
     /* ── CONTRACT CARD ── */
     .card {
       background: var(--card);
       border: 1px solid var(--border);
-      border-radius: 18px;
+      border-radius: 20px;
       overflow: hidden;
-      transition: border-color .2s, box-shadow .2s, transform .2s;
+      transition: all .25s cubic-bezier(0.4, 0, 0.2, 1);
       display: flex; flex-direction: column;
+      box-shadow: 0 8px 24px rgba(0,0,0,.15);
     }
-    .card:hover { border-color: var(--border-lit); transform: translateY(-2px); }
+    .card:hover { 
+      border-color: var(--border-lit); 
+      transform: translateY(-4px); 
+      box-shadow: 0 20px 40px var(--blue-glow);
+    }
     .card.deploying {
       border-color: var(--blue);
-      box-shadow: 0 0 28px var(--blue-glow), inset 0 0 28px rgba(0,82,255,.03);
+      box-shadow: 0 0 32px var(--blue-glow), inset 0 0 32px rgba(59,115,255,.1);
+      animation: deployingPulse 2s infinite;
     }
+    @keyframes deployingPulse { 50% { box-shadow: 0 0 32px var(--blue-glow), inset 0 0 32px rgba(59,115,255,.2); } }
+
     .card.deployed {
-      border-color: rgba(0,217,126,.35);
-      box-shadow: 0 0 18px rgba(0,217,126,.07);
+      border-color: rgba(0,217,126,.45);
+      box-shadow: 0 0 24px rgba(0,217,126,.15);
     }
 
     /* card index */
     .card-index {
       font-family: 'Space Mono', monospace;
-      font-size: 10px; color: var(--muted);
-      padding: 12px 18px 0;
+      font-size: 10.5px; color: var(--muted);
+      padding: 14px 20px 0;
     }
 
     /* card top row */
     .card-top {
-      display: flex; align-items: flex-start; gap: 12px;
-      padding: 8px 18px 12px;
+      display: flex; align-items: flex-start; gap: 14px;
+      padding: 10px 20px 14px;
     }
     .cicon {
-      width: 44px; height: 44px; border-radius: 12px;
+      width: 48px; height: 48px; border-radius: 14px;
       display: grid; place-items: center;
-      font-size: 22px; flex-shrink: 0;
+      font-size: 24px; flex-shrink: 0;
+      box-shadow: 0 4px 12px rgba(0,0,0,.2);
     }
     .cinfo { flex: 1; min-width: 0; }
     .cname {
-      font-size: 15px; font-weight: 700; letter-spacing: -.3px;
+      font-size: 16px; font-weight: 700; letter-spacing: -.4px;
       white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
     }
     .cdesc {
-      font-size: 12px; color: var(--dim); margin-top: 3px;
+      font-size: 12.5px; color: var(--dim); margin-top: 4px;
       line-height: 1.45; font-weight: 400;
     }
 
     .cbadge {
       flex-shrink: 0;
-      font-size: 10px; font-weight: 700;
-      padding: 3px 9px; border-radius: 20px;
+      font-size: 10.5px; font-weight: 700;
+      padding: 4px 11px; border-radius: 9999px;
       border: 1px solid rgba(0,82,255,.3);
       background: rgba(0,82,255,.12);
       color: #7ba8ff;
@@ -282,30 +321,30 @@
       white-space: nowrap;
     }
     .cbadge.ok {
-      border-color: rgba(0,217,126,.3);
-      background: rgba(0,217,126,.1);
+      border-color: rgba(0,217,126,.4);
+      background: rgba(0,217,126,.12);
       color: var(--green);
     }
 
     /* code strip */
     .code-strip {
-      margin: 0 14px;
+      margin: 0 16px 12px;
       background: var(--code);
       border: 1px solid rgba(255,255,255,.04);
-      border-radius: 10px;
-      padding: 10px 13px;
+      border-radius: 12px;
+      padding: 12px 16px;
       font-family: 'Space Mono', monospace;
-      font-size: 10.5px;
-      line-height: 1.75;
+      font-size: 11px;
+      line-height: 1.7;
       color: #5a6a90;
-      max-height: 92px;
+      max-height: 96px;
       overflow: hidden;
       position: relative;
     }
     .code-strip::after {
       content: '';
       position: absolute; bottom: 0; left: 0; right: 0;
-      height: 32px;
+      height: 36px;
       background: linear-gradient(transparent, var(--code));
     }
     .kw  { color: #c792ea; }
@@ -317,100 +356,101 @@
 
     /* inputs */
     .cinputs {
-      padding: 10px 14px 0;
-      display: flex; flex-direction: column; gap: 7px;
+      padding: 0 16px 12px;
+      display: flex; flex-direction: column; gap: 9px;
     }
     .cinputs label {
       display: block;
-      font-size: 10px; font-weight: 700;
+      font-size: 10.5px; font-weight: 700;
       color: var(--muted); margin-bottom: 3px;
       font-family: 'Space Mono', monospace;
-      letter-spacing: .5px;
+      letter-spacing: .6px;
     }
     .cinputs input {
       width: 100%;
-      padding: 7px 11px;
+      padding: 9px 13px;
       background: var(--code);
       border: 1px solid var(--border);
-      border-radius: 8px;
+      border-radius: 9px;
       color: var(--text);
       font-family: 'Space Mono', monospace;
-      font-size: 12px;
+      font-size: 13px;
       outline: none;
-      transition: border-color .15s;
+      transition: all .2s;
     }
-    .cinputs input:focus { border-color: var(--blue); }
+    .cinputs input:focus { border-color: var(--blue); box-shadow: 0 0 0 3px rgba(0,82,255,.15); }
 
     /* footer */
     .card-foot {
-      padding: 12px 14px 14px;
+      padding: 12px 16px 18px;
       margin-top: auto;
-      display: flex; flex-direction: column; gap: 8px;
+      display: flex; flex-direction: column; gap: 9px;
     }
 
     .deploy-btn {
-      width: 100%; padding: 11px;
+      width: 100%; padding: 13px;
       background: var(--blue);
       color: #fff; border: none;
-      border-radius: 11px;
+      border-radius: 12px;
       font-family: 'Syne', sans-serif;
-      font-size: 14px; font-weight: 700;
+      font-size: 15px; font-weight: 700;
       cursor: pointer;
-      transition: background .15s, opacity .15s;
+      transition: all .2s cubic-bezier(0.4, 0, 0.2, 1);
       display: flex; align-items: center; justify-content: center; gap: 8px;
+      box-shadow: 0 6px 16px var(--blue-glow);
     }
-    .deploy-btn:hover:not(:disabled) { background: var(--blue-hi); }
+    .deploy-btn:hover:not(:disabled) { background: var(--blue-hi); transform: translateY(-2px); }
+    .deploy-btn:active:not(:disabled) { transform: scale(0.96); }
     .deploy-btn:disabled { opacity: .45; cursor: not-allowed; }
-    .deploy-btn.done { background: #008c50; }
+    .deploy-btn.done { background: #008c50; box-shadow: 0 6px 16px rgba(0,140,80,.3); }
 
     .tx-msg {
       display: none;
-      font-size: 12px; padding: 8px 11px;
-      border-radius: 8px;
+      font-size: 12.5px; padding: 10px 14px;
+      border-radius: 10px;
       font-family: 'Space Mono', monospace;
-      word-break: break-all; line-height: 1.5;
+      word-break: break-all; line-height: 1.55;
     }
-    .tx-msg.pend { background: rgba(255,173,43,.08); color: var(--amber); display: flex; }
-    .tx-msg.ok   { background: rgba(0,217,126,.08); color: var(--green); display: flex; }
-    .tx-msg.fail { background: rgba(255,74,107,.08); color: var(--red); display: flex; }
+    .tx-msg.pend { background: rgba(255,173,43,.09); color: var(--amber); display: flex; align-items: center; gap: 8px; }
+    .tx-msg.ok   { background: rgba(0,217,126,.09); color: var(--green); display: flex; flex-direction: column; gap: 6px; }
+    .tx-msg.fail { background: rgba(255,74,107,.09); color: var(--red); display: flex; }
 
     .bscan-link {
       color: var(--green); text-decoration: none;
-      display: inline-flex; align-items: center; gap: 4px;
+      display: inline-flex; align-items: center; gap: 5px;
+      font-size: 12px;
     }
     .bscan-link:hover { text-decoration: underline; }
 
     /* ── FOOTER ── */
     .page-foot {
       position: relative; z-index: 1;
-      text-align: center; padding: 22px 24px;
+      text-align: center; padding: 28px 24px;
       border-top: 1px solid var(--border);
-      font-size: 12px; color: var(--muted);
+      font-size: 12.5px; color: var(--muted);
       font-family: 'Space Mono', monospace;
     }
     .page-foot a { color: var(--blue-hi); text-decoration: none; }
     .page-foot a:hover { text-decoration: underline; }
 
-    @media (max-width: 600px) {
-      header { padding: 0 14px; }
-      .hero { padding: 48px 16px 32px; }
-      .hero h1 { font-size: 30px; }
-      .hero-stats { flex-direction: column; }
-      .stat { border-right: none; border-bottom: 1px solid var(--border); }
-      .stat:last-child { border-bottom: none; }
+    @media (max-width: 640px) {
+      header { padding: 0 16px; height: 60px; }
+      .hero { padding: 58px 16px 38px; }
+      .hero h1 { font-size: 32px; }
       .grid { grid-template-columns: 1fr; }
-      .net-pill { display: none; }
+      .net-pill { font-size: 11px; padding: 5px 10px; }
     }
   </style>
 </head>
 <body>
 <div class="bg-glow"></div>
+<canvas id="dev-bg"></canvas>
 
 <!-- ═══ HEADER ═══ -->
 <header>
   <div class="logo">
     <div class="logo-mark">🔷</div>
-    Arc Testnet Smart Contract Deployer for Demrar JAMAIII
+    Deploy Smart Contract On Arc
   </div>
   <div class="hdr-right">
     <div class="net-pill">
@@ -426,8 +466,8 @@
   <div class="hero-eyebrow">
     ⬡ <span>Arc Testnet</span> — Solidity v0.8.20 · ethers.js v5
   </div>
-  <h1>Arc Testnet <em>Smart Contract Deployer</em><br>for Demrar JAMAIII</h1>
-  <p>Browser-compiled, MetaMask-signed. Zero setup. Connect your wallet and deploy each contract with a single click on Arc Testnet (L1).</p>
+  <h1>Deploy Smart Contract <em>On Arc</em></h1>
+  <p>Browser-compiled Solidity. MetaMask-signed. Zero setup.<br>One-click deployment to Arc Testnet (L1) with live network visualization.</p>
   <div class="hero-stats">
     <div class="stat">
       <div class="stat-val">10</div>
@@ -467,8 +507,9 @@
 
 <!-- ═══ PAGE FOOTER ═══ -->
 <footer class="page-foot">
-  Built for <a href="https://arc.network" target="_blank">arc.network</a> ·
-  Verify contracts on <a href="https://testnet.arcscan.app" target="_blank">testnet.arcscan.app</a> ·
+  Built for <a href="https://arc.network" target="_blank">arc.network</a> · 
+  Multiple RPC endpoints supported · 
+  Verify on <a href="https://testnet.arcscan.app" target="_blank">testnet.arcscan.app</a> · 
   Chain ID 5042002
 </footer>
 
@@ -476,14 +517,19 @@
 <script src="https://cdn.jsdelivr.net/npm/ethers@5.7.2/dist/ethers.umd.min.js"></script>
 <script>
 /* ================================================================
-   CHAIN CONFIG — ARC TESTNET (L1)
+   CHAIN CONFIG — ARC TESTNET (L1) with multiple RPCs
 ================================================================ */
-const ARC_CHAIN_ID     = '0x4cef52';   // 5042002
-const ARC_RPC          = 'https://rpc.testnet.arc.network';
-const ARC_EXPLORER     = 'https://testnet.arcscan.app';
+const ARC_CHAIN_ID = '0x4cef52';   // 5042002
+const ARC_RPCS = [
+  'https://rpc.testnet.arc.network',
+  'https://rpc.blockdaemon.testnet.arc.network',
+  'https://rpc.drpc.testnet.arc.network',
+  'https://rpc.quicknode.testnet.arc.network'
+];
+const ARC_EXPLORER = 'https://testnet.arcscan.app';
 
 /* ================================================================
-   10 CONTRACTS (unchanged — fully EVM compatible)
+   10 CONTRACTS (unchanged)
 ================================================================ */
 const CONTRACTS = [
   {
@@ -781,7 +827,79 @@ let solcWorker      = null;
 let deployedCount   = 0;
 
 /* ================================================================
-   SOLC LOADER (Web Worker Based) — unchanged
+   ANIMATED DEVELOPER BACKGROUND (network graph)
+================================================================ */
+function initDevBackground() {
+  const canvas = document.getElementById('dev-bg');
+  if (!canvas) return;
+  const ctx = canvas.getContext('2d');
+  let particles = [];
+  const numParticles = 130;
+
+  class Particle {
+    constructor() {
+      this.x = Math.random() * canvas.width;
+      this.y = Math.random() * canvas.height;
+      this.vx = (Math.random() - 0.5) * 0.6;
+      this.vy = (Math.random() - 0.5) * 0.6;
+      this.radius = Math.random() * 2.2 + 0.8;
+    }
+    update() {
+      this.x += this.vx;
+      this.y += this.vy;
+      if (this.x < 0 || this.x > canvas.width) this.vx *= -1;
+      if (this.y < 0 || this.y > canvas.height) this.vy *= -1;
+    }
+  }
+
+  function resize() {
+    canvas.width = window.innerWidth;
+    canvas.height = window.innerHeight;
+    particles = Array.from({ length: numParticles }, () => new Particle());
+  }
+
+  function connectParticles() {
+    for (let i = 0; i < particles.length; i++) {
+      for (let j = i + 1; j < particles.length; j++) {
+        const dx = particles[i].x - particles[j].x;
+        const dy = particles[i].y - particles[j].y;
+        const distance = Math.hypot(dx, dy);
+        if (distance < 155) {
+          const alpha = (1 - distance / 155) * 0.7;
+          ctx.strokeStyle = `rgba(59, 115, 255, ${alpha})`;
+          ctx.lineWidth = 0.75;
+          ctx.beginPath();
+          ctx.moveTo(particles[i].x, particles[i].y);
+          ctx.lineTo(particles[j].x, particles[j].y);
+          ctx.stroke();
+        }
+      }
+    }
+  }
+
+  function animate() {
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    connectParticles();
+    for (let p of particles) {
+      p.update();
+      ctx.fillStyle = '#3b73ff';
+      ctx.shadowBlur = 8;
+      ctx.shadowColor = '#3b73ff';
+      ctx.beginPath();
+      ctx.arc(p.x, p.y, p.radius, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.shadowBlur = 0;
+    }
+    requestAnimationFrame(animate);
+  }
+
+  window.addEventListener('resize', resize);
+  resize();
+  animate();
+}
+
+/* ================================================================
+   SOLC LOADER (Web Worker Based)
  ================================================================ */
 const SOLC_SRC = 'https://binaries.soliditylang.org/bin/soljson-v0.8.20+commit.a1b79de6.js';
 
@@ -790,34 +908,19 @@ function loadSolc() {
     const workerBlob = new Blob([`
       self.onmessage = (e) => {
         const { type, payload } = e.data;
-
         if (type === 'init') {
-          self.Module = {
-            onRuntimeInitialized() {
-              self.postMessage({ type: 'ready' });
-            }
-          };
-          try {
-            importScripts(payload.src);
-          } catch (err) {
-            self.postMessage({ type: 'error', error: 'Failed to load compiler: ' + err.message });
-          }
+          self.Module = { onRuntimeInitialized() { self.postMessage({ type: 'ready' }); } };
+          try { importScripts(payload.src); } 
+          catch (err) { self.postMessage({ type: 'error', error: 'Failed to load compiler: ' + err.message }); }
         }
-
         if (type === 'compile') {
           try {
             const { input, contractName } = payload;
             const solc = self.Module;
             let raw;
-
             if (typeof solc.ccall === 'function') {
-              try {
-                raw = solc.ccall('solidity_compile', 'string', ['string', 'number'], [input, 0]);
-              } catch (e) {
-                raw = solc.ccall('solidity_compile', 'string', ['string'], [input]);
-              }
-            } 
-            else if (typeof solc._solidity_compile === 'function') {
+              raw = solc.ccall('solidity_compile', 'string', ['string'], [input]);
+            } else if (typeof solc._solidity_compile === 'function') {
               const strToPtr = (str) => {
                 const len = (solc.lengthBytesUTF8 || lengthBytesUTF8)(str) + 1;
                 const ptr = solc._malloc(len);
@@ -827,80 +930,55 @@ function loadSolc() {
               const inPtr = strToPtr(input);
               const outPtr = solc._solidity_compile(inPtr, 0);
               raw = (solc.UTF8ToString || UTF8ToString)(outPtr);
-              solc._free(inPtr); 
-            }
-            else {
-              throw new Error('Compiler interface (ccall/_solidity_compile) not found');
-            }
-
+              solc._free(inPtr);
+            } else throw new Error('Compiler interface not found');
             self.postMessage({ type: 'compiled', payload: JSON.parse(raw) });
-          } catch (err) {
-            self.postMessage({ type: 'error', error: err.message });
-          }
+          } catch (err) { self.postMessage({ type: 'error', error: err.message }); }
         }
       };
     `], { type: 'application/javascript' });
 
     solcWorker = new Worker(URL.createObjectURL(workerBlob));
-
     solcWorker.onmessage = (e) => {
-      if (e.data.type === 'ready') {
-        solcReady = true;
-        resolve();
-      } else if (e.data.type === 'error') {
-        reject(new Error(e.data.error));
-      }
+      if (e.data.type === 'ready') { solcReady = true; resolve(); }
+      else if (e.data.type === 'error') reject(new Error(e.data.error));
     };
-
-    solcWorker.onerror = (err) => reject(new Error('Worker initialization failed: ' + err.message));
-
+    solcWorker.onerror = (err) => reject(new Error('Worker failed: ' + err.message));
     solcWorker.postMessage({ type: 'init', payload: { src: SOLC_SRC } });
-
-    setTimeout(() => { if (!solcReady) reject(new Error('Compiler init timed out (60s)')); }, 60000);
+    setTimeout(() => { if (!solcReady) reject(new Error('Compiler timed out')); }, 60000);
   });
 }
 
 function compileSol(source, contractName) {
   return new Promise((resolve, reject) => {
     if (!solcReady) return reject(new Error('Compiler not ready'));
-
     const input = JSON.stringify({
       language: 'Solidity',
-      sources:  { 'c.sol': { content: source } },
-      settings: {
-        optimizer:       { enabled: true, runs: 200 },
-        outputSelection: { '*': { '*': ['abi', 'evm.bytecode'] } }
-      }
+      sources: { 'c.sol': { content: source } },
+      settings: { optimizer: { enabled: true, runs: 200 }, outputSelection: { '*': { '*': ['abi', 'evm.bytecode'] } } }
     });
 
     const handler = (e) => {
       if (e.data.type === 'compiled') {
         solcWorker.removeEventListener('message', handler);
         const out = e.data.payload;
-
         const errs = (out.errors || []).filter(e => e.severity === 'error');
         if (errs.length) return reject(new Error(errs[0].formattedMessage || errs[0].message));
-
         const compiled = out.contracts?.['c.sol']?.[contractName];
-        if (!compiled) return reject(new Error(`"${contractName}" not found in output`));
-
-        resolve({
-          abi:      compiled.abi,
-          bytecode: '0x' + compiled.evm.bytecode.object
-        });
+        if (!compiled) return reject(new Error(`"${contractName}" not found`));
+        resolve({ abi: compiled.abi, bytecode: '0x' + compiled.evm.bytecode.object });
       } else if (e.data.type === 'error') {
         solcWorker.removeEventListener('message', handler);
         reject(new Error(e.data.error));
       }
     };
-
     solcWorker.addEventListener('message', handler);
-    solcWorker.postMessage({ type: 'compile', payload: { source, contractName, input } });
+    solcWorker.postMessage({ type: 'compile', payload: { input, contractName } });
   });
 }
 
 /* ================================================================
-   WALLET — now Arc Testnet
+   WALLET
 ================================================================ */
 async function connectWallet() {
   if (!window.ethereum) {
@@ -921,12 +999,6 @@ async function connectWallet() {
     btn.classList.add('connected');
 
     if (solcReady) enableAllButtons();
-
-    window.ethereum.on('accountsChanged', accs => {
-      if (!accs.length) location.reload();
-      else { currentAccount = accs[0]; document.getElementById('connectBtn').textContent = accs[0].slice(0,6)+'…'+accs[0].slice(-4); }
-    });
-    window.ethereum.on('chainChanged', () => location.reload());
     return true;
   } catch (err) {
     console.error(err);
@@ -943,10 +1015,10 @@ async function switchToArc() {
       await window.ethereum.request({
         method: 'wallet_addEthereumChain',
         params: [{
-          chainId:           ARC_CHAIN_ID,
-          chainName:         'Arc Testnet',
-          nativeCurrency:    { name: 'USDC', symbol: 'USDC', decimals: 18 },
-          rpcUrls:           [ARC_RPC],
+          chainId: ARC_CHAIN_ID,
+          chainName: 'Arc Testnet',
+          nativeCurrency: { name: 'USDC', symbol: 'USDC', decimals: 18 },
+          rpcUrls: ARC_RPCS,                    // ← Multiple RPCs added
           blockExplorerUrls: [ARC_EXPLORER]
         }]
       });
@@ -955,7 +1027,7 @@ async function switchToArc() {
 }
 
 /* ================================================================
-   DEPLOY — now uses Arc explorer
+   DEPLOY
 ================================================================ */
 async function deploy(id) {
   const c = CONTRACTS.find(x => x.id === id);
@@ -979,7 +1051,7 @@ async function deploy(id) {
   try {
     const args = [];
     for (const inp of c.inputs) {
-      const el  = document.getElementById(id + '-' + inp.id);
+      const el = document.getElementById(id + '-' + inp.id);
       const val = el ? el.value.trim() : inp.def;
       if (!val) throw new Error(`Fill in: ${inp.label}`);
       if (inp.id === 'tsupply') args.push(ethers.BigNumber.from(val));
@@ -996,7 +1068,7 @@ async function deploy(id) {
 
     const txHash = instance.deployTransaction.hash;
     btn.innerHTML = '<span class="spin">↻</span> Confirming on Arc…';
-    setStatus(id, 'pend', '⟳ Tx: ' + txHash.slice(0,14) + '…  (waiting for block)');
+    setStatus(id, 'pend', '⟳ Tx: ' + txHash.slice(0,14) + '…');
 
     await instance.deployed();
     const address = instance.address;
@@ -1022,11 +1094,8 @@ async function deploy(id) {
     btn.innerHTML = '↻ Retry';
 
     let msg = err.message || String(err);
-    if (err.code === 4001 || msg.includes('user rejected') || msg.includes('User denied')) {
-      msg = 'Transaction rejected.';
-    } else if (msg.length > 120) {
-      msg = msg.slice(0, 120) + '…';
-    }
+    if (err.code === 4001 || msg.includes('user rejected') || msg.includes('User denied')) msg = 'Transaction rejected.';
+    else if (msg.length > 130) msg = msg.slice(0, 130) + '…';
     setStatus(id, 'fail', '✗ ' + msg);
   }
 }
@@ -1036,15 +1105,11 @@ function setStatus(id, type, msg, address, txHash) {
   el.className = 'tx-msg ' + type;
   if (type === 'ok' && address) {
     const short = address.slice(0,8) + '…' + address.slice(-6);
-    el.innerHTML =
-      `<div style="display:flex;flex-direction:column;gap:4px">` +
-        `<a class="bscan-link" href="${ARC_EXPLORER}/address/${address}" target="_blank">` +
-          `📍 ${short} ↗` +
-        `</a>` +
-        `<a class="bscan-link" href="${ARC_EXPLORER}/tx/${txHash}" target="_blank">` +
-          `🔗 View on Arcscan ↗` +
-        `</a>` +
-      `</div>`;
+    el.innerHTML = `
+      <div style="display:flex;flex-direction:column;gap:5px">
+        <a class="bscan-link" href="${ARC_EXPLORER}/address/${address}" target="_blank">📍 ${short} ↗</a>
+        <a class="bscan-link" href="${ARC_EXPLORER}/tx/${txHash}" target="_blank">🔗 View on Arcscan ↗</a>
+      </div>`;
   } else {
     el.textContent = msg;
   }
@@ -1057,7 +1122,7 @@ function enableAllButtons() {
 }
 
 /* ================================================================
-   SIMPLE SYNTAX HIGHLIGHT — unchanged
+   SYNTAX HIGHLIGHT
 ================================================================ */
 function highlight(src) {
   const kwRx  = /\b(pragma|solidity|contract|function|constructor|event|modifier|mapping|require|emit|struct|returns|return|public|private|external|internal|view|pure|payable|memory|calldata|storage|if|else|for|while|true|false|address|uint256|uint8|bool|string|bytes|receive|fallback)\b/g;
@@ -1074,7 +1139,7 @@ function highlight(src) {
 }
 
 /* ================================================================
-   RENDER — unchanged
+   RENDER
 ================================================================ */
 function render() {
   const grid = document.getElementById('grid');
@@ -1116,6 +1181,7 @@ function render() {
    INIT
 ================================================================ */
 async function init() {
+  initDevBackground();   // ← Animated developer background
   render();
 
   const statusEl  = document.getElementById('compilerStatus');
@@ -1126,14 +1192,14 @@ async function init() {
     statusEl.className  = 'ready';
     statusTxt.textContent = '✓ Solidity v0.8.20 compiler ready — connect wallet to deploy on Arc Testnet';
     if (walletConnected) enableAllButtons();
-    else enableAllButtons();
+    else enableAllButtons(); // enable once compiler is ready
   } catch (err) {
     statusEl.className  = 'err';
     statusTxt.textContent = '✗ Compiler failed: ' + err.message;
   }
 }
 
-// Auto-reconnect if already authorised
+// Auto-reconnect
 if (window.ethereum) {
   window.ethereum.request({ method: 'eth_accounts' }).then(accs => {
     if (accs.length) connectWallet();
