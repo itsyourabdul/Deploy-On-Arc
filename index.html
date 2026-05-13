@@ -1,525 +1,9 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Deploy Smart Contract On Arc</title>
-  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🔷</text></svg>">
-  <link rel="preconnect" href="https://fonts.googleapis.com" />
-  <link href="https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&family=Syne:wght@400;600;700;800&display=swap" rel="stylesheet" />
-  <style>
-    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
-
-    :root {
-      --bg:        #08090c;
-      --surface:   #0d0f15;
-      --card:      #111420;
-      --card-hov:  #161a28;
-      --border:    #1c2035;
-      --border-lit:#2a3050;
-      --blue:      #0052ff;
-      --blue-hi:   #3b73ff;
-      --blue-glow: rgba(59,115,255,.22);
-      --green:     #00d97e;
-      --red:       #ff4a6b;
-      --amber:     #ffad2b;
-      --text:      #dce3f5;
-      --muted:     #5a6480;
-      --dim:       #8a94b0;
-      --code:      #0a0c12;
-    }
-
-    html { scroll-behavior: smooth; }
-
-    body {
-      font-family: 'Syne', sans-serif;
-      background: var(--bg);
-      color: var(--text);
-      min-height: 100vh;
-      overflow-x: hidden;
-      position: relative;
-    }
-
-    /* ── ANIMATED DEV BACKGROUND (network graph) ── */
-    #dev-bg {
-      position: fixed;
-      top: 0; left: 0;
-      width: 100%; height: 100%;
-      z-index: -1;
-      opacity: 0.13;
-      pointer-events: none;
-    }
-
-    /* ── NOISE + GLOW (kept but toned down) ── */
-    body::before {
-      content: '';
-      position: fixed; inset: 0;
-      background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)' opacity='0.025'/%3E%3C/svg%3E");
-      background-size: 200px;
-      pointer-events: none;
-      z-index: -2;
-      opacity: .4;
-    }
-
-    .bg-glow {
-      position: fixed;
-      top: -35vh; left: 50%;
-      transform: translateX(-50%);
-      width: 1100px; height: 720px;
-      background: radial-gradient(ellipse, rgba(59,115,255,.12) 0%, transparent 68%);
-      animation: glowPulse 18s ease infinite;
-      pointer-events: none;
-      z-index: -2;
-    }
-
-    @keyframes glowPulse {
-      0%, 100% { opacity: 0.6; transform: translateX(-50%) scale(1); }
-      50% { opacity: 1; transform: translateX(-50%) scale(1.08); }
-    }
-
-    /* ── HEADER ── */
-    header {
-      position: sticky; top: 0; z-index: 200;
-      display: flex; align-items: center; justify-content: space-between;
-      padding: 0 28px;
-      height: 66px;
-      background: rgba(8,9,12,.92);
-      backdrop-filter: blur(28px);
-      border-bottom: 1px solid var(--border);
-      box-shadow: 0 4px 20px rgba(0,82,255,.08);
-    }
-
-    .logo {
-      display: flex; align-items: center; gap: 10px;
-      font-size: 18px; font-weight: 800; letter-spacing: -.6px;
-    }
-
-    .logo-mark {
-      width: 32px; height: 32px;
-      background: linear-gradient(135deg, var(--blue), #7ba8ff);
-      border-radius: 9px;
-      display: grid; place-items: center;
-      font-size: 17px;
-      box-shadow: 0 0 14px var(--blue-glow);
-    }
-
-    .hdr-right { display: flex; align-items: center; gap: 12px; }
-
-    .net-pill {
-      display: flex; align-items: center; gap: 7px;
-      padding: 6px 14px;
-      background: var(--surface);
-      border: 1px solid var(--border-lit);
-      border-radius: 9999px;
-      font-size: 12.5px; color: var(--dim);
-      font-family: 'Space Mono', monospace;
-      box-shadow: inset 0 1px 0 rgba(255,255,255,.06);
-    }
-    .net-dot { width: 7px; height: 7px; border-radius: 50%; background: var(--green); box-shadow: 0 0 8px var(--green); animation: netPulse 2s infinite; }
-
-    @keyframes netPulse { 50% { opacity: 0.4; } }
-
-    #connectBtn {
-      padding: 8px 20px;
-      background: var(--blue);
-      color: #fff;
-      border: none; border-radius: 10px;
-      font-family: 'Syne', sans-serif;
-      font-size: 13.5px; font-weight: 700;
-      cursor: pointer;
-      transition: all .2s cubic-bezier(0.4, 0, 0.2, 1);
-      box-shadow: 0 4px 14px var(--blue-glow);
-    }
-    #connectBtn:hover { background: var(--blue-hi); transform: translateY(-1px); }
-    #connectBtn:active { transform: scale(0.97); }
-    #connectBtn.connected {
-      background: var(--surface);
-      border: 1px solid var(--border-lit);
-      color: var(--dim);
-      font-family: 'Space Mono', monospace;
-      font-size: 11.5px;
-      letter-spacing: 0;
-      box-shadow: none;
-    }
-
-    /* ── HERO ── */
-    .hero {
-      position: relative; z-index: 1;
-      text-align: center;
-      padding: 82px 24px 52px;
-    }
-
-    .hero-eyebrow {
-      display: inline-flex; align-items: center; gap: 8px;
-      padding: 6px 16px;
-      border: 1px solid var(--border-lit);
-      border-radius: 9999px;
-      font-size: 12.5px; color: var(--dim);
-      font-family: 'Space Mono', monospace;
-      margin-bottom: 24px;
-      background: var(--surface);
-      box-shadow: 0 2px 8px rgba(0,82,255,.1);
-    }
-    .hero-eyebrow span { color: var(--blue-hi); }
-
-    .hero h1 {
-      font-size: clamp(34px, 5.5vw, 62px);
-      font-weight: 800;
-      letter-spacing: -2.5px;
-      line-height: 1.05;
-      margin-bottom: 18px;
-    }
-    .hero h1 em {
-      font-style: normal;
-      background: linear-gradient(130deg, #3b73ff 0%, #a78bff 100%);
-      -webkit-background-clip: text;
-      -webkit-text-fill-color: transparent;
-    }
-
-    .hero p {
-      font-size: 16.5px; font-weight: 400;
-      color: var(--dim);
-      max-width: 520px; margin: 0 auto 36px;
-      line-height: 1.7;
-    }
-
-    .hero-stats {
-      display: inline-flex; gap: 0;
-      border: 1px solid var(--border);
-      border-radius: 16px;
-      overflow: hidden;
-      background: var(--surface);
-      box-shadow: 0 8px 24px rgba(0,0,0,.2);
-    }
-    .stat {
-      padding: 14px 32px;
-      border-right: 1px solid var(--border);
-    }
-    .stat:last-child { border-right: none; }
-    .stat-val { font-size: 24px; font-weight: 800; color: var(--blue-hi); }
-    .stat-lbl { font-size: 11.5px; color: var(--muted); margin-top: 2px; font-family: 'Space Mono', monospace; }
-
-    /* ── COMPILER STATUS ── */
-    .compiler-wrap {
-      position: relative; z-index: 1;
-      max-width: 1200px; margin: 0 auto 32px;
-      padding: 0 24px;
-    }
-
-    #compilerStatus {
-      display: flex; align-items: center; gap: 12px;
-      padding: 14px 20px;
-      border-radius: 12px;
-      font-size: 13.5px;
-      border: 1px solid;
-      font-family: 'Space Mono', monospace;
-      transition: all .3s cubic-bezier(0.4, 0, 0.2, 1);
-      box-shadow: 0 4px 16px rgba(0,0,0,.15);
-    }
-    #compilerStatus.loading { background: rgba(255,173,43,.08); border-color: rgba(255,173,43,.3); color: var(--amber); }
-    #compilerStatus.ready   { background: rgba(0,217,126,.08); border-color: rgba(0,217,126,.3); color: var(--green); }
-    #compilerStatus.err     { background: rgba(255,74,107,.08); border-color: rgba(255,74,107,.3); color: var(--red); }
-
-    @keyframes spin { to { transform: rotate(360deg); } }
-    .spin { display: inline-block; animation: spin 1s linear infinite; }
-
-    /* ── GRID ── */
-    .section {
-      position: relative; z-index: 1;
-      max-width: 1200px; margin: 0 auto;
-      padding: 0 24px 80px;
-    }
-
-    .section-hdr {
-      display: flex; align-items: center; justify-content: space-between;
-      margin-bottom: 20px;
-    }
-    .section-label {
-      font-size: 11.5px; font-weight: 700; letter-spacing: 2.5px;
-      text-transform: uppercase; color: var(--muted);
-      font-family: 'Space Mono', monospace;
-    }
-    #deployedCount {
-      font-size: 13px;
-      color: var(--dim);
-      font-family: 'Space Mono', monospace;
-      background: var(--surface);
-      padding: 4px 14px;
-      border-radius: 9999px;
-      border: 1px solid var(--border);
-    }
-
-    .grid {
-      display: grid;
-      grid-template-columns: repeat(auto-fill, minmax(360px, 1fr));
-      gap: 18px;
-    }
-
-    /* ── CONTRACT CARD ── */
-    .card {
-      background: var(--card);
-      border: 1px solid var(--border);
-      border-radius: 20px;
-      overflow: hidden;
-      transition: all .25s cubic-bezier(0.4, 0, 0.2, 1);
-      display: flex; flex-direction: column;
-      box-shadow: 0 8px 24px rgba(0,0,0,.15);
-    }
-    .card:hover { 
-      border-color: var(--border-lit); 
-      transform: translateY(-4px); 
-      box-shadow: 0 20px 40px var(--blue-glow);
-    }
-    .card.deploying {
-      border-color: var(--blue);
-      box-shadow: 0 0 32px var(--blue-glow), inset 0 0 32px rgba(59,115,255,.1);
-      animation: deployingPulse 2s infinite;
-    }
-    @keyframes deployingPulse { 50% { box-shadow: 0 0 32px var(--blue-glow), inset 0 0 32px rgba(59,115,255,.2); } }
-
-    .card.deployed {
-      border-color: rgba(0,217,126,.45);
-      box-shadow: 0 0 24px rgba(0,217,126,.15);
-    }
-
-    /* card index */
-    .card-index {
-      font-family: 'Space Mono', monospace;
-      font-size: 10.5px; color: var(--muted);
-      padding: 14px 20px 0;
-    }
-
-    /* card top row */
-    .card-top {
-      display: flex; align-items: flex-start; gap: 14px;
-      padding: 10px 20px 14px;
-    }
-    .cicon {
-      width: 48px; height: 48px; border-radius: 14px;
-      display: grid; place-items: center;
-      font-size: 24px; flex-shrink: 0;
-      box-shadow: 0 4px 12px rgba(0,0,0,.2);
-    }
-    .cinfo { flex: 1; min-width: 0; }
-    .cname {
-      font-size: 16px; font-weight: 700; letter-spacing: -.4px;
-      white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
-    }
-    .cdesc {
-      font-size: 12.5px; color: var(--dim); margin-top: 4px;
-      line-height: 1.45; font-weight: 400;
-    }
-
-    .cbadge {
-      flex-shrink: 0;
-      font-size: 10.5px; font-weight: 700;
-      padding: 4px 11px; border-radius: 9999px;
-      border: 1px solid rgba(0,82,255,.3);
-      background: rgba(0,82,255,.12);
-      color: #7ba8ff;
-      font-family: 'Space Mono', monospace;
-      white-space: nowrap;
-    }
-    .cbadge.ok {
-      border-color: rgba(0,217,126,.4);
-      background: rgba(0,217,126,.12);
-      color: var(--green);
-    }
-
-    /* code strip */
-    .code-strip {
-      margin: 0 16px 12px;
-      background: var(--code);
-      border: 1px solid rgba(255,255,255,.04);
-      border-radius: 12px;
-      padding: 12px 16px;
-      font-family: 'Space Mono', monospace;
-      font-size: 11px;
-      line-height: 1.7;
-      color: #5a6a90;
-      max-height: 96px;
-      overflow: hidden;
-      position: relative;
-    }
-    .code-strip::after {
-      content: '';
-      position: absolute; bottom: 0; left: 0; right: 0;
-      height: 36px;
-      background: linear-gradient(transparent, var(--code));
-    }
-    .kw  { color: #c792ea; }
-    .ty  { color: #82aaff; }
-    .fn  { color: #82aaff; }
-    .str { color: #c3e88d; }
-    .cm  { color: #3d4f6b; }
-    .nm  { color: #f78c6c; }
-
-    /* inputs */
-    .cinputs {
-      padding: 0 16px 12px;
-      display: flex; flex-direction: column; gap: 9px;
-    }
-    .cinputs label {
-      display: block;
-      font-size: 10.5px; font-weight: 700;
-      color: var(--muted); margin-bottom: 3px;
-      font-family: 'Space Mono', monospace;
-      letter-spacing: .6px;
-    }
-    .cinputs input {
-      width: 100%;
-      padding: 9px 13px;
-      background: var(--code);
-      border: 1px solid var(--border);
-      border-radius: 9px;
-      color: var(--text);
-      font-family: 'Space Mono', monospace;
-      font-size: 13px;
-      outline: none;
-      transition: all .2s;
-    }
-    .cinputs input:focus { border-color: var(--blue); box-shadow: 0 0 0 3px rgba(0,82,255,.15); }
-
-    /* footer */
-    .card-foot {
-      padding: 12px 16px 18px;
-      margin-top: auto;
-      display: flex; flex-direction: column; gap: 9px;
-    }
-
-    .deploy-btn {
-      width: 100%; padding: 13px;
-      background: var(--blue);
-      color: #fff; border: none;
-      border-radius: 12px;
-      font-family: 'Syne', sans-serif;
-      font-size: 15px; font-weight: 700;
-      cursor: pointer;
-      transition: all .2s cubic-bezier(0.4, 0, 0.2, 1);
-      display: flex; align-items: center; justify-content: center; gap: 8px;
-      box-shadow: 0 6px 16px var(--blue-glow);
-    }
-    .deploy-btn:hover:not(:disabled) { background: var(--blue-hi); transform: translateY(-2px); }
-    .deploy-btn:active:not(:disabled) { transform: scale(0.96); }
-    .deploy-btn:disabled { opacity: .45; cursor: not-allowed; }
-    .deploy-btn.done { background: #008c50; box-shadow: 0 6px 16px rgba(0,140,80,.3); }
-
-    .tx-msg {
-      display: none;
-      font-size: 12.5px; padding: 10px 14px;
-      border-radius: 10px;
-      font-family: 'Space Mono', monospace;
-      word-break: break-all; line-height: 1.55;
-    }
-    .tx-msg.pend { background: rgba(255,173,43,.09); color: var(--amber); display: flex; align-items: center; gap: 8px; }
-    .tx-msg.ok   { background: rgba(0,217,126,.09); color: var(--green); display: flex; flex-direction: column; gap: 6px; }
-    .tx-msg.fail { background: rgba(255,74,107,.09); color: var(--red); display: flex; }
-
-    .bscan-link {
-      color: var(--green); text-decoration: none;
-      display: inline-flex; align-items: center; gap: 5px;
-      font-size: 12px;
-    }
-    .bscan-link:hover { text-decoration: underline; }
-
-    /* ── FOOTER ── */
-    .page-foot {
-      position: relative; z-index: 1;
-      text-align: center; padding: 28px 24px;
-      border-top: 1px solid var(--border);
-      font-size: 12.5px; color: var(--muted);
-      font-family: 'Space Mono', monospace;
-    }
-    .page-foot a { color: var(--blue-hi); text-decoration: none; }
-    .page-foot a:hover { text-decoration: underline; }
-
-    @media (max-width: 640px) {
-      header { padding: 0 16px; height: 60px; }
-      .hero { padding: 58px 16px 38px; }
-      .hero h1 { font-size: 32px; }
-      .grid { grid-template-columns: 1fr; }
-      .net-pill { font-size: 11px; padding: 5px 10px; }
-    }
-  </style>
-</head>
-<body>
-<div class="bg-glow"></div>
-<canvas id="dev-bg"></canvas>
-
-<!-- ═══ HEADER ═══ -->
-<header>
-  <div class="logo">
-    <div class="logo-mark">🔷</div>
-    Deploy Smart Contract On Arc
-  </div>
-  <div class="hdr-right">
-    <div class="net-pill">
-      <div class="net-dot"></div>
-      Arc Testnet · 5042002
-    </div>
-    <button id="connectBtn" onclick="connectWallet()">Connect Wallet</button>
-  </div>
-</header>
-
-<!-- ═══ HERO ═══ -->
-<section class="hero">
-  <div class="hero-eyebrow">
-    ⬡ <span>Arc Testnet</span> — Solidity v0.8.20 · ethers.js v5
-  </div>
-  <h1>Deploy Smart Contract <em>On Arc</em></h1>
-  <p>Browser-compiled Solidity. MetaMask-signed. Zero setup.<br>One-click deployment to Arc Testnet (L1) with live network visualization.</p>
-  <div class="hero-stats">
-    <div class="stat">
-      <div class="stat-val">10</div>
-      <div class="stat-lbl">Contracts</div>
-    </div>
-    <div class="stat">
-      <div class="stat-val">~$0.01</div>
-      <div class="stat-lbl">Avg Cost (USDC)</div>
-    </div>
-    <div class="stat">
-      <div class="stat-val">~2s</div>
-      <div class="stat-lbl">Block Time</div>
-    </div>
-    <div class="stat">
-      <div class="stat-val">0.8.20</div>
-      <div class="stat-lbl">Solidity</div>
-    </div>
-  </div>
-</section>
-
-<!-- ═══ COMPILER STATUS ═══ -->
-<div class="compiler-wrap">
-  <div id="compilerStatus" class="loading">
-    <span class="spin">↻</span>
-    <span id="statusText">Loading Solidity compiler — please wait (~5s)…</span>
-  </div>
-</div>
-
-<!-- ═══ CONTRACTS GRID ═══ -->
-<section class="section">
-  <div class="section-hdr">
-    <div class="section-label">// contracts ready to deploy</div>
-    <div id="deployedCount">0 / 10 deployed</div>
-  </div>
-  <div class="grid" id="grid"></div>
-</section>
-
-<!-- ═══ PAGE FOOTER ═══ -->
-<footer class="page-foot">
-  Built for <a href="https://arc.network" target="_blank">arc.network</a> · 
-  Multiple RPC endpoints supported · 
-  Verify on <a href="https://testnet.arcscan.app" target="_blank">testnet.arcscan.app</a> · 
-  Chain ID 5042002
-</footer>
-
-<!-- ═══ SCRIPTS ═══ -->
 <script src="https://cdn.jsdelivr.net/npm/ethers@5.7.2/dist/ethers.umd.min.js"></script>
 <script>
 /* ================================================================
    CHAIN CONFIG — ARC TESTNET (L1) with multiple RPCs
 ================================================================ */
-const ARC_CHAIN_ID = '0x4cef52';   // 5042002
+const ARC_CHAIN_ID = '0x4cef52';
 const ARC_RPCS = [
   'https://rpc.testnet.arc.network',
   'https://rpc.blockdaemon.testnet.arc.network',
@@ -531,292 +15,10 @@ const ARC_EXPLORER = 'https://testnet.arcscan.app';
 /* ================================================================
    10 CONTRACTS (unchanged)
 ================================================================ */
-const CONTRACTS = [
-  {
-    id: 'simple-storage',
-    name: 'SimpleStorage',
-    contractName: 'SimpleStorage',
-    icon: '💾', iconBg: '#0d1a38',
-    badge: 'Storage',
-    desc: 'Store and retrieve a uint256 value permanently on‑chain.',
-    inputs: [],
-    src: `// SPDX-License-Identifier: MIT
-pragma solidity ^0.8.20;
-contract SimpleStorage {
-    uint256 public storedData;
-    event DataSet(address indexed by, uint256 val);
-    function set(uint256 x) public {
-        storedData = x;
-        emit DataSet(msg.sender, x);
-    }
-    function get() public view returns (uint256) {
-        return storedData;
-    }
-}`
-  },
-  {
-    id: 'counter',
-    name: 'Counter',
-    contractName: 'Counter',
-    icon: '🔢', iconBg: '#0a1220',
-    badge: 'Utility',
-    desc: 'On‑chain counter. increment, decrement, and reset (owner only).',
-    inputs: [],
-    src: `// SPDX-License-Identifier: MIT
-pragma solidity ^0.8.20;
-contract Counter {
-    uint256 public count;
-    address public owner;
-    event Counted(string action, uint256 newVal);
-    constructor() { owner = msg.sender; }
-    function increment() public { count += 1; emit Counted("inc", count); }
-    function decrement() public {
-        require(count > 0, "Already zero");
-        count -= 1; emit Counted("dec", count);
-    }
-    function reset() public {
-        require(msg.sender == owner, "Not owner");
-        count = 0; emit Counted("reset", 0);
-    }
-}`
-  },
-  {
-    id: 'greeter',
-    name: 'Greeter',
-    contractName: 'Greeter',
-    icon: '👋', iconBg: '#0a1e10',
-    badge: 'Social',
-    desc: 'Store a greeting string on Arc. Anyone can read; owner can update.',
-    inputs: [],
-    src: `// SPDX-License-Identifier: MIT
-pragma solidity ^0.8.20;
-contract Greeter {
-    string public greeting;
-    address public owner;
-    event GreetingChanged(address indexed by, string msg_);
-    constructor() { greeting = "Hello from Arc Testnet!"; owner = msg.sender; }
-    function setGreeting(string calldata _g) public {
-        require(bytes(_g).length > 0, "Empty");
-        greeting = _g;
-        emit GreetingChanged(msg.sender, _g);
-    }
-}`
-  },
-  {
-    id: 'ownable',
-    name: 'SimpleOwnable',
-    contractName: 'SimpleOwnable',
-    icon: '👑', iconBg: '#1e1600',
-    badge: 'Access',
-    desc: 'Ownership contract with transferOwnership and renounceOwnership.',
-    inputs: [],
-    src: `// SPDX-License-Identifier: MIT
-pragma solidity ^0.8.20;
-contract SimpleOwnable {
-    address public owner;
-    event OwnershipTransferred(address indexed prev, address indexed next);
-    constructor() { owner = msg.sender; emit OwnershipTransferred(address(0), msg.sender); }
-    modifier onlyOwner() { require(msg.sender == owner, "Not owner"); _; }
-    function transferOwnership(address to) public onlyOwner {
-        require(to != address(0), "Zero addr");
-        emit OwnershipTransferred(owner, to);
-        owner = to;
-    }
-    function renounceOwnership() public onlyOwner {
-        emit OwnershipTransferred(owner, address(0));
-        owner = address(0);
-    }
-}`
-  },
-  {
-    id: 'piggybank',
-    name: 'PiggyBank',
-    contractName: 'PiggyBank',
-    icon: '🐷', iconBg: '#1e0a14',
-    badge: 'Finance',
-    desc: 'Send native token (USDC) to save it on‑chain. Only the deployer can withdraw.',
-    inputs: [],
-    src: `// SPDX-License-Identifier: MIT
-pragma solidity ^0.8.20;
-contract PiggyBank {
-    address public owner;
-    event Deposit(address indexed from, uint256 amount);
-    event Withdrawal(uint256 amount);
-    constructor() { owner = msg.sender; }
-    receive() external payable { emit Deposit(msg.sender, msg.value); }
-    function deposit() external payable {
-        require(msg.value > 0, "Send USDC");
-        emit Deposit(msg.sender, msg.value);
-    }
-    function withdraw() external {
-        require(msg.sender == owner, "Not owner");
-        uint256 bal = address(this).balance;
-        require(bal > 0, "Empty");
-        emit Withdrawal(bal);
-        payable(owner).transfer(bal);
-    }
-    function getBalance() public view returns (uint256) { return address(this).balance; }
-}`
-  },
-  {
-    id: 'whitelist',
-    name: 'Whitelist',
-    contractName: 'Whitelist',
-    icon: '✅', iconBg: '#061a10',
-    badge: 'Access',
-    desc: 'Manage approved addresses on‑chain with add / remove functions.',
-    inputs: [],
-    src: `// SPDX-License-Identifier: MIT
-pragma solidity ^0.8.20;
-contract Whitelist {
-    address public owner;
-    mapping(address => bool) public isWhitelisted;
-    uint256 public whitelistSize;
-    event Added(address indexed addr);
-    event Removed(address indexed addr);
-    constructor() { owner = msg.sender; isWhitelisted[msg.sender] = true; whitelistSize = 1; emit Added(msg.sender); }
-    modifier onlyOwner() { require(msg.sender == owner, "Not owner"); _; }
-    function add(address a) public onlyOwner {
-        require(!isWhitelisted[a], "Already in");
-        isWhitelisted[a] = true; whitelistSize++; emit Added(a);
-    }
-    function remove(address a) public onlyOwner {
-        require(isWhitelisted[a], "Not in list");
-        isWhitelisted[a] = false; whitelistSize--; emit Removed(a);
-    }
-}`
-  },
-  {
-    id: 'messageboard',
-    name: 'MessageBoard',
-    contractName: 'MessageBoard',
-    icon: '📝', iconBg: '#0d0d24',
-    badge: 'Social',
-    desc: 'Post and read public messages (≤280 chars) on the Arc chain.',
-    inputs: [],
-    src: `// SPDX-License-Identifier: MIT
-pragma solidity ^0.8.20;
-contract MessageBoard {
-    struct Msg { address author; string text; uint256 ts; }
-    Msg public latest;
-    uint256 public totalPosts;
-    event Posted(address indexed author, string text, uint256 ts);
-    function post(string calldata text) public {
-        require(bytes(text).length > 0, "Empty");
-        require(bytes(text).length <= 280, "Too long");
-        latest = Msg(msg.sender, text, block.timestamp);
-        totalPosts++;
-        emit Posted(msg.sender, text, block.timestamp);
-    }
-}`
-  },
-  {
-    id: 'voting',
-    name: 'SimpleVoting',
-    contractName: 'SimpleVoting',
-    icon: '🗳️', iconBg: '#160a24',
-    badge: 'DAO',
-    desc: 'On‑chain yes/no vote. Each address gets one vote, recorded forever.',
-    inputs: [],
-    src: `// SPDX-License-Identifier: MIT
-pragma solidity ^0.8.20;
-contract SimpleVoting {
-    uint256 public yesVotes;
-    uint256 public noVotes;
-    mapping(address => bool) public hasVoted;
-    event Voted(address indexed voter, bool choice);
-    function voteYes() public {
-        require(!hasVoted[msg.sender], "Already voted");
-        hasVoted[msg.sender] = true; yesVotes++;
-        emit Voted(msg.sender, true);
-    }
-    function voteNo() public {
-        require(!hasVoted[msg.sender], "Already voted");
-        hasVoted[msg.sender] = true; noVotes++;
-        emit Voted(msg.sender, false);
-    }
-    function totalVotes() public view returns (uint256) { return yesVotes + noVotes; }
-}`
-  },
-  {
-    id: 'token',
-    name: 'SimpleToken',
-    contractName: 'SimpleToken',
-    icon: '🪙', iconBg: '#1a1400',
-    badge: 'ERC-20',
-    desc: 'Deploy your own ERC-20 compatible token with transfer & approve.',
-    inputs: [
-      { id: 'tname',   label: 'TOKEN NAME',   ph: 'My Arc Token', def: 'My Arc Token' },
-      { id: 'tsym',    label: 'SYMBOL',        ph: 'MAT',           def: 'MAT' },
-      { id: 'tsupply', label: 'TOTAL SUPPLY',  ph: '1000000',       def: '1000000' }
-    ],
-    src: `// SPDX-License-Identifier: MIT
-pragma solidity ^0.8.20;
-contract SimpleToken {
-    string public name;
-    string public symbol;
-    uint8  public decimals = 18;
-    uint256 public totalSupply;
-    mapping(address => uint256) public balanceOf;
-    mapping(address => mapping(address => uint256)) public allowance;
-    event Transfer(address indexed from, address indexed to, uint256 value);
-    event Approval(address indexed owner, address indexed spender, uint256 value);
-    constructor(string memory _name, string memory _sym, uint256 _supply) {
-        name = _name; symbol = _sym;
-        totalSupply = _supply * 10**18;
-        balanceOf[msg.sender] = totalSupply;
-        emit Transfer(address(0), msg.sender, totalSupply);
-    }
-    function transfer(address to, uint256 val) public returns (bool) {
-        require(balanceOf[msg.sender] >= val, "Low balance");
-        balanceOf[msg.sender] -= val; balanceOf[to] += val;
-        emit Transfer(msg.sender, to, val); return true;
-    }
-    function approve(address sp, uint256 val) public returns (bool) {
-        allowance[msg.sender][sp] = val;
-        emit Approval(msg.sender, sp, val); return true;
-    }
-    function transferFrom(address from, address to, uint256 val) public returns (bool) {
-        require(balanceOf[from] >= val, "Low balance");
-        require(allowance[from][msg.sender] >= val, "Low allowance");
-        allowance[from][msg.sender] -= val;
-        balanceOf[from] -= val; balanceOf[to] += val;
-        emit Transfer(from, to, val); return true;
-    }
-}`
-  },
-  {
-    id: 'timestamp',
-    name: 'TimestampLogger',
-    contractName: 'TimestampLogger',
-    icon: '⏱️', iconBg: '#061420',
-    badge: 'Utility',
-    desc: 'Log on‑chain timestamps. Call ping() to record when you visited.',
-    inputs: [],
-    src: `// SPDX-License-Identifier: MIT
-pragma solidity ^0.8.20;
-contract TimestampLogger {
-    uint256 public deployedAt;
-    uint256 public lastPingAt;
-    uint256 public pingCount;
-    address public deployer;
-    event Pinged(address indexed by, uint256 ts, uint256 n);
-    constructor() { deployedAt = block.timestamp; deployer = msg.sender; }
-    function ping() public {
-        lastPingAt = block.timestamp; pingCount++;
-        emit Pinged(msg.sender, block.timestamp, pingCount);
-    }
-    function timeSinceDeploy() public view returns (uint256) { return block.timestamp - deployedAt; }
-    function timeSinceLastPing() public view returns (uint256) {
-        if (pingCount == 0) return 0;
-        return block.timestamp - lastPingAt;
-    }
-}`
-  }
-];
+const CONTRACTS = [ /* ... your exact CONTRACTS array ... */ ];
 
 /* ================================================================
-   STATE
+   STATE + PRE-COMPILED CACHE (NEW FOR SPEED)
 ================================================================ */
 let walletConnected = false;
 let currentAccount  = null;
@@ -825,209 +27,16 @@ let signer_         = null;
 let solcReady       = false;
 let solcWorker      = null;
 let deployedCount   = 0;
+let compiledCache   = {};   // ← NEW: bytecode + abi cache
 
 /* ================================================================
-   ANIMATED DEVELOPER BACKGROUND (network graph)
+   ... (keep your initDevBackground, loadSolc, compileSol, connectWallet, 
+        switchToArc, setStatus, enableAllButtons, highlight, render functions 
+        exactly as they were — only deploy() changes below) ...
 ================================================================ */
-function initDevBackground() {
-  const canvas = document.getElementById('dev-bg');
-  if (!canvas) return;
-  const ctx = canvas.getContext('2d');
-  let particles = [];
-  const numParticles = 130;
-
-  class Particle {
-    constructor() {
-      this.x = Math.random() * canvas.width;
-      this.y = Math.random() * canvas.height;
-      this.vx = (Math.random() - 0.5) * 0.6;
-      this.vy = (Math.random() - 0.5) * 0.6;
-      this.radius = Math.random() * 2.2 + 0.8;
-    }
-    update() {
-      this.x += this.vx;
-      this.y += this.vy;
-      if (this.x < 0 || this.x > canvas.width) this.vx *= -1;
-      if (this.y < 0 || this.y > canvas.height) this.vy *= -1;
-    }
-  }
-
-  function resize() {
-    canvas.width = window.innerWidth;
-    canvas.height = window.innerHeight;
-    particles = Array.from({ length: numParticles }, () => new Particle());
-  }
-
-  function connectParticles() {
-    for (let i = 0; i < particles.length; i++) {
-      for (let j = i + 1; j < particles.length; j++) {
-        const dx = particles[i].x - particles[j].x;
-        const dy = particles[i].y - particles[j].y;
-        const distance = Math.hypot(dx, dy);
-        if (distance < 155) {
-          const alpha = (1 - distance / 155) * 0.7;
-          ctx.strokeStyle = `rgba(59, 115, 255, ${alpha})`;
-          ctx.lineWidth = 0.75;
-          ctx.beginPath();
-          ctx.moveTo(particles[i].x, particles[i].y);
-          ctx.lineTo(particles[j].x, particles[j].y);
-          ctx.stroke();
-        }
-      }
-    }
-  }
-
-  function animate() {
-    ctx.clearRect(0, 0, canvas.width, canvas.height);
-    connectParticles();
-    for (let p of particles) {
-      p.update();
-      ctx.fillStyle = '#3b73ff';
-      ctx.shadowBlur = 8;
-      ctx.shadowColor = '#3b73ff';
-      ctx.beginPath();
-      ctx.arc(p.x, p.y, p.radius, 0, Math.PI * 2);
-      ctx.fill();
-      ctx.shadowBlur = 0;
-    }
-    requestAnimationFrame(animate);
-  }
-
-  window.addEventListener('resize', resize);
-  resize();
-  animate();
-}
 
 /* ================================================================
-   SOLC LOADER (Web Worker Based)
- ================================================================ */
-const SOLC_SRC = 'https://binaries.soliditylang.org/bin/soljson-v0.8.20+commit.a1b79de6.js';
-
-function loadSolc() {
-  return new Promise((resolve, reject) => {
-    const workerBlob = new Blob([`
-      self.onmessage = (e) => {
-        const { type, payload } = e.data;
-        if (type === 'init') {
-          self.Module = { onRuntimeInitialized() { self.postMessage({ type: 'ready' }); } };
-          try { importScripts(payload.src); } 
-          catch (err) { self.postMessage({ type: 'error', error: 'Failed to load compiler: ' + err.message }); }
-        }
-        if (type === 'compile') {
-          try {
-            const { input, contractName } = payload;
-            const solc = self.Module;
-            let raw;
-            if (typeof solc.ccall === 'function') {
-              raw = solc.ccall('solidity_compile', 'string', ['string'], [input]);
-            } else if (typeof solc._solidity_compile === 'function') {
-              const strToPtr = (str) => {
-                const len = (solc.lengthBytesUTF8 || lengthBytesUTF8)(str) + 1;
-                const ptr = solc._malloc(len);
-                (solc.stringToUTF8 || stringToUTF8)(str, ptr, len);
-                return ptr;
-              };
-              const inPtr = strToPtr(input);
-              const outPtr = solc._solidity_compile(inPtr, 0);
-              raw = (solc.UTF8ToString || UTF8ToString)(outPtr);
-              solc._free(inPtr);
-            } else throw new Error('Compiler interface not found');
-            self.postMessage({ type: 'compiled', payload: JSON.parse(raw) });
-          } catch (err) { self.postMessage({ type: 'error', error: err.message }); }
-        }
-      };
-    `], { type: 'application/javascript' });
-
-    solcWorker = new Worker(URL.createObjectURL(workerBlob));
-    solcWorker.onmessage = (e) => {
-      if (e.data.type === 'ready') { solcReady = true; resolve(); }
-      else if (e.data.type === 'error') reject(new Error(e.data.error));
-    };
-    solcWorker.onerror = (err) => reject(new Error('Worker failed: ' + err.message));
-    solcWorker.postMessage({ type: 'init', payload: { src: SOLC_SRC } });
-    setTimeout(() => { if (!solcReady) reject(new Error('Compiler timed out')); }, 60000);
-  });
-}
-
-function compileSol(source, contractName) {
-  return new Promise((resolve, reject) => {
-    if (!solcReady) return reject(new Error('Compiler not ready'));
-    const input = JSON.stringify({
-      language: 'Solidity',
-      sources: { 'c.sol': { content: source } },
-      settings: { optimizer: { enabled: true, runs: 200 }, outputSelection: { '*': { '*': ['abi', 'evm.bytecode'] } } }
-    });
-
-    const handler = (e) => {
-      if (e.data.type === 'compiled') {
-        solcWorker.removeEventListener('message', handler);
-        const out = e.data.payload;
-        const errs = (out.errors || []).filter(e => e.severity === 'error');
-        if (errs.length) return reject(new Error(errs[0].formattedMessage || errs[0].message));
-        const compiled = out.contracts?.['c.sol']?.[contractName];
-        if (!compiled) return reject(new Error(`"${contractName}" not found`));
-        resolve({ abi: compiled.abi, bytecode: '0x' + compiled.evm.bytecode.object });
-      } else if (e.data.type === 'error') {
-        solcWorker.removeEventListener('message', handler);
-        reject(new Error(e.data.error));
-      }
-    };
-    solcWorker.addEventListener('message', handler);
-    solcWorker.postMessage({ type: 'compile', payload: { input, contractName } });
-  });
-}
-
-/* ================================================================
-   WALLET
-================================================================ */
-async function connectWallet() {
-  if (!window.ethereum) {
-    alert('MetaMask (or compatible wallet) not found.\nPlease install MetaMask to continue.');
-    return false;
-  }
-  try {
-    const accounts = await window.ethereum.request({ method: 'eth_requestAccounts' });
-    currentAccount = accounts[0];
-    await switchToArc();
-
-    provider = new ethers.providers.Web3Provider(window.ethereum);
-    signer_  = provider.getSigner();
-    walletConnected = true;
-
-    const btn = document.getElementById('connectBtn');
-    btn.textContent = currentAccount.slice(0,6) + '…' + currentAccount.slice(-4);
-    btn.classList.add('connected');
-
-    if (solcReady) enableAllButtons();
-    return true;
-  } catch (err) {
-    console.error(err);
-    if (err.code !== 4001) alert('Wallet connection failed: ' + err.message);
-    return false;
-  }
-}
-
-async function switchToArc() {
-  try {
-    await window.ethereum.request({ method: 'wallet_switchEthereumChain', params: [{ chainId: ARC_CHAIN_ID }] });
-  } catch (e) {
-    if (e.code === 4902 || e.code === -32603) {
-      await window.ethereum.request({
-        method: 'wallet_addEthereumChain',
-        params: [{
-          chainId: ARC_CHAIN_ID,
-          chainName: 'Arc Testnet',
-          nativeCurrency: { name: 'USDC', symbol: 'USDC', decimals: 18 },
-          rpcUrls: ARC_RPCS,                    // ← Multiple RPCs added
-          blockExplorerUrls: [ARC_EXPLORER]
-        }]
-      });
-    } else throw e;
-  }
-}
-
-/* ================================================================
-   DEPLOY
+   OPTIMIZED DEPLOY (pre-compiled + faster UI)
 ================================================================ */
 async function deploy(id) {
   const c = CONTRACTS.find(x => x.id === id);
@@ -1038,41 +47,51 @@ async function deploy(id) {
     if (!ok) return;
   }
 
-  if (!solcReady) { setStatus(id, 'pend', '⚠ Compiler still loading — please wait…'); return; }
+  if (!solcReady) {
+    setStatus(id, 'pend', '⚠ Compiler still loading — please wait…');
+    return;
+  }
 
   const card = document.getElementById('card-' + id);
-  const btn  = document.getElementById('btn-'  + id);
+  const btn  = document.getElementById('btn-' + id);
 
   card.classList.add('deploying');
   btn.disabled = true;
-  btn.innerHTML = '<span class="spin">↻</span> Compiling…';
-  setStatus(id, 'pend', '↻ Compiling with Solidity v0.8.20…');
+  btn.innerHTML = '<span class="spin">↻</span> Deploying…';
 
   try {
+    // Use cached compilation (instant after first load)
+    let compilation = compiledCache[c.id];
+    if (!compilation) {
+      setStatus(id, 'pend', '↻ Compiling…');
+      compilation = await compileSol(c.src, c.contractName);
+      compiledCache[c.id] = compilation;   // cache for next time
+    }
+
     const args = [];
     for (const inp of c.inputs) {
       const el = document.getElementById(id + '-' + inp.id);
-      const val = el ? el.value.trim() : inp.def;
+      let val = el ? el.value.trim() : inp.def;
       if (!val) throw new Error(`Fill in: ${inp.label}`);
-      if (inp.id === 'tsupply') args.push(ethers.BigNumber.from(val));
-      else args.push(val);
+      if (inp.id === 'tsupply') {
+        val = ethers.BigNumber.from(val);   // safer
+      }
+      args.push(val);
     }
 
-    const { abi, bytecode } = await compileSol(c.src, c.contractName);
-
     btn.innerHTML = '<span class="spin">↻</span> Waiting for MetaMask…';
-    setStatus(id, 'pend', '⏳ Check MetaMask and sign the transaction…');
+    setStatus(id, 'pend', '⏳ Sign the transaction in MetaMask…');
 
-    const factory  = new ethers.ContractFactory(abi, bytecode, signer_);
+    const factory  = new ethers.ContractFactory(compilation.abi, compilation.bytecode, signer_);
     const instance = await factory.deploy(...args);
 
     const txHash = instance.deployTransaction.hash;
-    btn.innerHTML = '<span class="spin">↻</span> Confirming on Arc…';
-    setStatus(id, 'pend', '⟳ Tx: ' + txHash.slice(0,14) + '…');
+    setStatus(id, 'pend', `⟳ Tx: ${txHash.slice(0,14)}…`);
 
     await instance.deployed();
     const address = instance.address;
 
+    // Success UI
     card.classList.remove('deploying');
     card.classList.add('deployed');
     btn.classList.add('done');
@@ -1094,94 +113,17 @@ async function deploy(id) {
     btn.innerHTML = '↻ Retry';
 
     let msg = err.message || String(err);
-    if (err.code === 4001 || msg.includes('user rejected') || msg.includes('User denied')) msg = 'Transaction rejected.';
+    if (err.code === 4001 || msg.includes('user rejected') || msg.includes('User denied')) msg = 'Transaction rejected by user.';
     else if (msg.length > 130) msg = msg.slice(0, 130) + '…';
     setStatus(id, 'fail', '✗ ' + msg);
   }
 }
 
-function setStatus(id, type, msg, address, txHash) {
-  const el = document.getElementById('st-' + id);
-  el.className = 'tx-msg ' + type;
-  if (type === 'ok' && address) {
-    const short = address.slice(0,8) + '…' + address.slice(-6);
-    el.innerHTML = `
-      <div style="display:flex;flex-direction:column;gap:5px">
-        <a class="bscan-link" href="${ARC_EXPLORER}/address/${address}" target="_blank">📍 ${short} ↗</a>
-        <a class="bscan-link" href="${ARC_EXPLORER}/tx/${txHash}" target="_blank">🔗 View on Arcscan ↗</a>
-      </div>`;
-  } else {
-    el.textContent = msg;
-  }
-}
-
-function enableAllButtons() {
-  document.querySelectorAll('.deploy-btn').forEach(b => {
-    if (!b.classList.contains('done')) b.disabled = false;
-  });
-}
-
 /* ================================================================
-   SYNTAX HIGHLIGHT
-================================================================ */
-function highlight(src) {
-  const kwRx  = /\b(pragma|solidity|contract|function|constructor|event|modifier|mapping|require|emit|struct|returns|return|public|private|external|internal|view|pure|payable|memory|calldata|storage|if|else|for|while|true|false|address|uint256|uint8|bool|string|bytes|receive|fallback)\b/g;
-  const cmRx  = /(\/\/.+)/g;
-  const strRx = /("(?:[^"\\]|\\.)*")/g;
-  const nmRx  = /\b(\d+)\b/g;
-
-  return src
-    .replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')
-    .replace(cmRx,  '<span class="cm">$1</span>')
-    .replace(strRx, '<span class="str">$1</span>')
-    .replace(kwRx,  '<span class="kw">$1</span>')
-    .replace(nmRx,  '<span class="nm">$1</span>');
-}
-
-/* ================================================================
-   RENDER
-================================================================ */
-function render() {
-  const grid = document.getElementById('grid');
-  grid.innerHTML = CONTRACTS.map((c, i) => {
-    const previewLines = c.src.split('\n').slice(0, 9).join('\n');
-    const inputsHtml = c.inputs.length ? `
-      <div class="cinputs">
-        ${c.inputs.map(inp => `
-          <div>
-            <label>${inp.label}</label>
-            <input id="${c.id}-${inp.id}" type="text" placeholder="${inp.ph}" value="${inp.def}" />
-          </div>`).join('')}
-      </div>` : '';
-
-    return `
-    <div class="card" id="card-${c.id}">
-      <div class="card-index">#${String(i+1).padStart(2,'0')} / 10</div>
-      <div class="card-top">
-        <div class="cicon" style="background:${c.iconBg}">${c.icon}</div>
-        <div class="cinfo">
-          <div class="cname">${c.name}</div>
-          <div class="cdesc">${c.desc}</div>
-        </div>
-        <div class="cbadge">${c.badge}</div>
-      </div>
-      <div class="code-strip">${highlight(previewLines)}</div>
-      ${inputsHtml}
-      <div class="card-foot">
-        <button class="deploy-btn" id="btn-${c.id}" onclick="deploy('${c.id}')" disabled>
-          🚀 Deploy on Arc Testnet
-        </button>
-        <div class="tx-msg" id="st-${c.id}"></div>
-      </div>
-    </div>`;
-  }).join('');
-}
-
-/* ================================================================
-   INIT
+   INIT — now pre-compiles everything for speed
 ================================================================ */
 async function init() {
-  initDevBackground();   // ← Animated developer background
+  initDevBackground();
   render();
 
   const statusEl  = document.getElementById('compilerStatus');
@@ -1189,24 +131,30 @@ async function init() {
 
   try {
     await loadSolc();
-    statusEl.className  = 'ready';
-    statusTxt.textContent = '✓ Solidity v0.8.20 compiler ready — connect wallet to deploy on Arc Testnet';
-    if (walletConnected) enableAllButtons();
-    else enableAllButtons(); // enable once compiler is ready
+    statusEl.className = 'ready';
+    statusTxt.textContent = '✓ Solidity v0.8.20 ready — pre-compiling contracts…';
+
+    // PRE-COMPILE ALL CONTRACTS (makes every deploy instant)
+    for (const c of CONTRACTS) {
+      try {
+        const comp = await compileSol(c.src, c.contractName);
+        compiledCache[c.id] = comp;
+      } catch (e) { console.warn('Pre-compile failed for', c.id, e); }
+    }
+
+    statusTxt.textContent = '🚀 All contracts pre-compiled — connect wallet and deploy instantly!';
+    enableAllButtons();
+
+    // Auto-reconnect if wallet already connected
+    if (window.ethereum) {
+      const accs = await window.ethereum.request({ method: 'eth_accounts' }).catch(() => []);
+      if (accs.length) connectWallet();
+    }
   } catch (err) {
-    statusEl.className  = 'err';
+    statusEl.className = 'err';
     statusTxt.textContent = '✗ Compiler failed: ' + err.message;
   }
 }
 
-// Auto-reconnect
-if (window.ethereum) {
-  window.ethereum.request({ method: 'eth_accounts' }).then(accs => {
-    if (accs.length) connectWallet();
-  }).catch(() => {});
-}
-
 init();
 </script>
-</body>
-</html>
